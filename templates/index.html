@@ -447,21 +447,38 @@
         var ICON_MERGE = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>';
 
         /** Normalize backend action (PUSH, PULL_REQUEST, MERGE) to key for styling/badge.
+         *  Backend sends uppercase: "PUSH", "PULL_REQUEST", "MERGE"
          *  If action field is missing/legacy, infer from the human-readable message so
          *  the label always matches what the text says (Push / Pull Request / Merge).
          */
         function getActionKey(action, message) {
-            var a = (action || '').toString().toLowerCase().replace(/\s+/g, '_');
-            if (a === 'push') return 'push';
-            if (a === 'pull_request' || a === 'pullrequest') return 'pull_request';
-            if (a === 'merge') return 'merge';
+            // Normalize action: handle both uppercase (from API) and lowercase
+            var a = (action || '').toString().toUpperCase().trim();
+            
+            // Direct match on uppercase values from backend
+            if (a === 'PUSH') return 'push';
+            if (a === 'PULL_REQUEST') return 'pull_request';
+            if (a === 'MERGE') return 'merge';
+            
+            // Also handle lowercase variants
+            var aLower = a.toLowerCase().replace(/\s+/g, '_');
+            if (aLower === 'push') return 'push';
+            if (aLower === 'pull_request' || aLower === 'pullrequest') return 'pull_request';
+            if (aLower === 'merge') return 'merge';
 
-            // Fallback: infer from message string
+            // Fallback: infer from message string (most reliable)
             var m = (message || '').toString().toLowerCase();
-            if (m.indexOf('submitted a pull request') !== -1) return 'pull_request';
-            if (m.indexOf('merged branch') !== -1) return 'merge';
-            if (m.indexOf('pushed to') !== -1) return 'push';
+            if (m.indexOf('submitted a pull request') !== -1 || m.indexOf('pull request') !== -1) {
+                return 'pull_request';
+            }
+            if (m.indexOf('merged branch') !== -1 || m.indexOf('merged') !== -1) {
+                return 'merge';
+            }
+            if (m.indexOf('pushed to') !== -1 || m.indexOf('pushed') !== -1) {
+                return 'push';
+            }
 
+            // Last resort: default to push
             return 'push';
         }
 

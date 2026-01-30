@@ -94,6 +94,9 @@ def receiver():
             "timestamp": ts,
         }
         action = None
+        
+        # Log received event type for debugging
+        logger.info(f"Received GitHub event: {github_event}")
 
         if github_event == "push":
             action = "PUSH"
@@ -172,10 +175,15 @@ def receiver():
 
         if action:
             event["request_id"] = event["request_id"] or ("%s-%s" % (action.lower(), ts.replace(" ", "-").replace(":", "-")[:30]))
+            # Log what we're storing
+            logger.info(f"Storing event: action={action}, author={event.get('author')}, from_branch={event.get('from_branch')}, to_branch={event.get('to_branch')}")
             try:
                 mongo.db.events.insert_one(event)
+                logger.info(f"Successfully stored event with action: {action}")
             except Exception as e:
                 logger.warning("Failed to store webhook event: %s", e)
+        else:
+            logger.warning(f"No action determined for event type: {github_event}")
         return jsonify({"message": "Event stored", "event": event}), 200
 
     except Exception:

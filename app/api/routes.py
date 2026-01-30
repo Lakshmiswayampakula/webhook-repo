@@ -126,11 +126,27 @@ def get_events():
         # (DB still keeps the original author, but the UI is fixed to you.)
         author = "Lakshmiswayampakula"
 
-        action = e.get("action") or ""
+        action = (e.get("action") or "").strip().upper()
         from_branch = e.get("from_branch") or ""
         to_branch = e.get("to_branch") or ""
         timestamp = e.get("timestamp") or ""
         request_id = e.get("request_id") or ""
+        
+        # Smart inference: if action is missing/empty, try to infer from other fields
+        # This helps fix old events that might have been stored incorrectly
+        if not action or action == "":
+            # If we have from_branch AND to_branch AND they're different, 
+            # it's likely a PR or Merge event
+            if from_branch and to_branch and from_branch != to_branch:
+                # Check request_id format - PR numbers are usually numeric strings
+                # Merge events often have both branches populated
+                # We can't perfectly distinguish PR vs Merge without the original webhook,
+                # but if from_branch exists, it's likely a PR/Merge, not a plain push
+                # Default to PULL_REQUEST if we can't tell
+                action = "PULL_REQUEST"
+            else:
+                # No from_branch or same branch = likely a push
+                action = "PUSH"
         
         # Ensure timestamp includes IST
         timestamp = ensure_ist_in_timestamp(timestamp)
@@ -158,7 +174,7 @@ def get_events():
         formatted.append({
             "message": message,
             "timestamp": timestamp,
-            "action": action,
+            "action": action.upper() if action else "",  # Ensure uppercase for consistency
             "author": author,
             "request_id": request_id,
             "from_branch": from_branch,
