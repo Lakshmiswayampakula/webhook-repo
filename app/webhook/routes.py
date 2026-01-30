@@ -1,7 +1,10 @@
 import json
+import logging
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from ..extensions import mongo
+
+logger = logging.getLogger(__name__)
 
 webhook = Blueprint('Webhook', __name__, url_prefix='/webhook')
 
@@ -131,8 +134,8 @@ def receiver():
             event["request_id"] = event["request_id"] or ("%s-%s" % (action.lower(), ts.replace(" ", "-").replace(":", "-")[:30]))
             try:
                 mongo.db.events.insert_one(event)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to store webhook event: %s", e)
         return jsonify({"message": "Event stored", "event": event}), 200
 
     except Exception:

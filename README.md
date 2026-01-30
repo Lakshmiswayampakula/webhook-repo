@@ -1,142 +1,123 @@
-# GitHub Webhook Receiver - Assignment Solution
+# GitHub Webhook Dashboard
 
-A Flask-based webhook receiver that processes GitHub webhook events (Push, Pull Request, Merge) and displays them in a real-time dashboard.
+A Flask app that receives GitHub webhook events (Push, Pull Request, Merge), stores them in MongoDB, and shows them on a real-time dashboard. I built this as the webhook receiver for the GitHub events flow.
 
-## 🚀 Features
+## What’s in this repo
 
-- ✅ **GitHub Webhook Integration**: Receives and processes Push, Pull Request, and Merge events
-- ✅ **MongoDB Storage**: Stores webhook events with proper schema
-- ✅ **Real-time Dashboard**: Beautiful UI that auto-refreshes every 15 seconds
-- ✅ **Event Formatting**: Displays events in the required format:
-  - Push: `{author} pushed to {branch} on {timestamp}`
-  - Pull Request: `{author} submitted a pull request from {from_branch} to {to_branch} on {timestamp}`
-  - Merge: `{author} merged branch {from_branch} to {to_branch} on {timestamp}`
-- ✅ **Timestamp Formatting**: Custom format matching requirements (e.g., "1st April 2021 - 9:30 PM UTC")
+- **Webhook endpoint** – `POST /webhook/receiver` accepts GitHub webhooks and stores events.
+- **Dashboard** – Web UI that lists recent events and auto-refreshes every 15 seconds.
+- **API** – `GET /api/events` returns stored events as JSON.
 
-## 📋 Requirements
+## Requirements
 
 - Python 3.8+
-- MongoDB Atlas account (connection string configured)
-- Flask and dependencies (see requirements.txt)
+- MongoDB (e.g. MongoDB Atlas)
+- Dependencies in `requirements.txt`
 
-## 🛠️ Setup
+## How to run locally
 
-### 1. Install Dependencies
+### 1. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Or if using Anaconda:
-```bash
-C:\Users\laksh\anaconda3\python.exe -m pip install -r requirements.txt
-```
+### 2. MongoDB
 
-### 2. Verify Setup (Optional)
+Use a MongoDB Atlas cluster (or local MongoDB). Set the connection string:
 
-Run the test script to verify everything is configured correctly:
+- **Option A (recommended):** Set the `MONGO_URI` environment variable.
+- **Option B:** For local only, you can set the default in `app/__init__.py` (see `app.config["MONGO_URI"]`).
 
-```bash
-python test_connection.py
-```
+Database name used: `github_webhooks`. Collection: `events`.
 
-### 3. Run the Application
+### 3. Run the app
 
 ```bash
 python run.py
 ```
 
-The application will start on `http://127.0.0.1:5000`
+App runs at `http://127.0.0.1:5000`.
 
-### 4. Access the Dashboard
+### 4. Optional: test MongoDB connection
 
-Open your browser and navigate to:
-```
-http://127.0.0.1:5000
-```
-
-## 🔗 API Endpoints
-
-- `GET /` - Main dashboard UI
-- `POST /webhook/receiver` - GitHub webhook endpoint
-- `GET /api/events` - JSON API for latest events
-
-## 📊 MongoDB Schema
-
-```javascript
-{
-    "_id": ObjectId,
-    "request_id": "string",      // Commit hash or PR ID
-    "author": "string",          // GitHub username
-    "action": "string",          // PUSH, PULL_REQUEST, or MERGE
-    "from_branch": "string",     // Source branch
-    "to_branch": "string",       // Target branch
-    "timestamp": "string"         // Formatted UTC timestamp
-}
+```bash
+python test_connection.py
 ```
 
-## 🔧 GitHub Webhook Configuration
+## How to use the dashboard
 
-### For action-repo:
+1. Open `http://127.0.0.1:5000` in a browser.
+2. The page shows “Recent Events” and auto-refreshes every 15 seconds.
+3. To see events, send webhooks to this app (e.g. from an “action” repo; see **GitHub webhook setup** below).
 
-1. Go to your GitHub repository settings
-2. Navigate to **Settings → Webhooks → Add webhook**
-3. Configure:
-   - **Payload URL**: `https://your-domain.com/webhook/receiver` (or use ngrok for local testing)
-   - **Content type**: `application/json`
-   - **Events**: Select "Just the push event" and "Pull requests"
-   - **Active**: ✅ Checked
+## GitHub webhook setup
 
-### Local Testing with ngrok:
+To receive events from a GitHub repo:
 
-1. Install ngrok: https://ngrok.com/download
-2. Run ngrok: `ngrok http 5000`
-3. Use the ngrok URL (e.g., `https://abc123.ngrok.io/webhook/receiver`) as your webhook URL
+1. In that repo: **Settings → Webhooks → Add webhook**.
+2. **Payload URL:**  
+   - Local: use a tunnel (e.g. ngrok: `ngrok http 5000`) and set URL to `https://<your-ngrok-host>/webhook/receiver`.  
+   - Production: `https://<your-deployed-domain>/webhook/receiver`.
+3. **Content type:** `application/json`.
+4. **Events:** Choose “Let me select individual events” and enable **Pushes** and **Pull requests**.
+5. Save the webhook.
 
-## 🧪 Testing
+## Deploying (e.g. Render)
 
-1. **Push Event**: Make a commit and push to your action-repo
-2. **Pull Request**: Create a pull request in your action-repo
-3. **Merge Event**: Merge a pull request in your action-repo
+1. Connect this repo to Render and create a Web Service.
+2. **Build:** `pip install -r requirements.txt`
+3. **Start:** `gunicorn app:app` (use the root `app.py` as the app module).
+4. Set **Environment variable:** `MONGO_URI` = your MongoDB Atlas connection string (include database name in the URL, e.g. `github_webhooks`).
+5. In MongoDB Atlas → Network Access, allow `0.0.0.0/0` (or Render’s IPs) so the app can connect.
 
-All events will appear in the dashboard automatically (refreshes every 15 seconds).
+After deploy, use the Render URL in the webhook Payload URL (e.g. `https://<your-service>.onrender.com/webhook/receiver`).
 
-## 📁 Project Structure
+## API endpoints
+
+| Method | Path               | Description                |
+|--------|--------------------|----------------------------|
+| GET    | `/`                | Dashboard UI               |
+| POST   | `/webhook/receiver`| GitHub webhook receiver    |
+| GET    | `/api/events`      | List events (JSON)         |
+| GET    | `/api/health`      | Health check               |
+
+## Event format (stored in MongoDB)
+
+Each document has:
+
+- `request_id` – Commit hash or PR number
+- `author` – GitHub username
+- `action` – `PUSH`, `PULL_REQUEST`, or `MERGE`
+- `from_branch` / `to_branch` – Branch names (when applicable)
+- `timestamp` – Formatted string (e.g. “1st April 2021 - 9:30 PM UTC”)
+
+Messages shown on the dashboard:
+
+- **Push:** `{author} pushed to {to_branch} on {timestamp}`
+- **Pull request:** `{author} submitted a pull request from {from_branch} to {to_branch} on {timestamp}`
+- **Merge:** `{author} merged branch {from_branch} to {to_branch} on {timestamp}`
+
+## Project structure
 
 ```
-webhook-repo-master/
+webhook-repo/
 ├── app/
-│   ├── __init__.py          # Flask app factory
-│   ├── extensions.py        # MongoDB extension
-│   ├── webhook/
-│   │   └── routes.py        # Webhook receiver endpoint
-│   └── api/
-│       └── routes.py        # API endpoints
+│   ├── __init__.py       # App factory, MongoDB config
+│   ├── extensions.py     # Mongo instance
+│   ├── webhook/routes.py # Webhook receiver
+│   └── api/routes.py     # /api/events, /api/health
 ├── templates/
-│   └── index.html          # Dashboard UI
-├── requirements.txt        # Python dependencies
-├── run.py                  # Application entry point
-├── test_connection.py      # Connection test script
-└── README.md              # This file
+│   └── index.html        # Dashboard UI
+├── app.py                # Gunicorn entry: app = create_app()
+├── run.py                # Local dev server
+├── requirements.txt
+├── render.yaml            # Optional Render blueprint
+└── test_connection.py     # Optional MongoDB test
 ```
 
-## 🎯 Assignment Requirements Completed
+## Troubleshooting
 
-- ✅ Flask webhook receiver implemented
-- ✅ MongoDB integration with proper schema
-- ✅ Support for PUSH, PULL_REQUEST, and MERGE events
-- ✅ Real-time UI with 15-second polling
-- ✅ Proper timestamp formatting
-- ✅ Clean, modern UI design
-- ✅ Error handling and validation
-
-## 🚨 Troubleshooting
-
-See `SETUP.md` for detailed troubleshooting guide.
-
-## 📝 Notes
-
-- MongoDB connection string is configured in `app/__init__.py`
-- The UI automatically polls `/api/events` every 15 seconds
-- Webhook events are stored immediately upon receipt
-- Timestamps are formatted in UTC timezone
+- **Dashboard shows “Connection Error” or no events:** Check `MONGO_URI` and MongoDB Atlas network access (e.g. `0.0.0.0/0`). Ensure the app can reach the cluster.
+- **Webhook deliveries fail (e.g. 4xx/5xx):** The receiver is built to return 200 for valid GitHub deliveries (including ping). Check Render/server logs for exceptions.
+- **Events not updating:** Dashboard polls every 15 seconds; new events appear after the next refresh.

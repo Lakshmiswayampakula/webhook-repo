@@ -4,370 +4,580 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitHub Webhook Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            /* Background: darkest, receding */
+            --bg-deep: #020408;
+            --bg-mid: #050a10;
+            --bg-surface: #080d14;
+            /* Panels: clearly lighter, with double-border for premium look */
+            --panel-bg: #151c28;
+            --panel-bg-soft: #1a2230;
+            --panel-bg-header: #161e2c;
+            --card-bg: #1c2636;
+            --card-bg-hover: #222e40;
+            --card-bg-elevated: #253044;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-mid: rgba(255, 255, 255, 0.12);
+            --border-light: rgba(255, 255, 255, 0.15);
+            --border-glow: rgba(255, 255, 255, 0.2);
+            --border-premium: rgba(255, 255, 255, 0.35);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --text-soft: #475569;
+            --gold: #eab308;
+            --gold-soft: rgba(234, 179, 8, 0.12);
+            --accent-live: #059669;
+            --accent-live-soft: rgba(5, 150, 105, 0.15);
+            --accent-error: #dc2626;
+            --accent-push: #059669;
+            --accent-push-bright: #10b981;
+            --accent-push-soft: rgba(16, 185, 129, 0.18);
+            --accent-pr: #d97706;
+            --accent-pr-bright: #f59e0b;
+            --accent-pr-soft: rgba(245, 158, 11, 0.18);
+            --accent-merge: #7c3aed;
+            --accent-merge-bright: #8b5cf6;
+            --accent-merge-soft: rgba(139, 92, 246, 0.18);
+            --glow-push: rgba(16, 185, 129, 0.22);
+            --glow-pr: rgba(245, 158, 11, 0.2);
+            --glow-merge: rgba(139, 92, 246, 0.22);
+            --shadow-panel: 0 12px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255,255,255,0.05);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.04);
+            --shadow-card-hover: 0 20px 56px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.08);
+            --radius: 28px;
+            --radius-md: 20px;
+            --radius-sm: 14px;
+            --radius-pill: 999px;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'DM Sans', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-deep);
+            background-image:
+                radial-gradient(ellipse 120% 80% at 50% -15%, rgba(5, 150, 105, 0.07) 0%, transparent 50%),
+                radial-gradient(ellipse 80% 60% at 100% 10%, rgba(124, 58, 237, 0.05) 0%, transparent 45%),
+                radial-gradient(ellipse 60% 50% at 0% 90%, rgba(234, 179, 8, 0.04) 0%, transparent 45%),
+                linear-gradient(180deg, #020408 0%, #050a10 40%, #080d14 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 28px 56px;
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1000px; margin: 0 auto; }
 
+        /* ----- Header: elevated panel with double white border (premium) ----- */
         .header {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(165deg, var(--panel-bg-header) 0%, var(--panel-bg) 50%, var(--panel-bg-soft) 100%);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 2px solid var(--border-premium);
+            border-radius: var(--radius);
+            padding: 56px 56px 48px;
+            margin-bottom: 40px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-panel), inset 0 0 0 1px rgba(255,255,255,0.12);
         }
-
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 20%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.12) 80%, transparent 100%);
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            top: -80%; left: -20%;
+            width: 140%;
+            height: 160%;
+            background: radial-gradient(circle at 50% 0%, var(--accent-live-soft) 0%, transparent 50%);
+            pointer-events: none;
+        }
         .header h1 {
-            color: #333;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: 2.6rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 14px;
+            background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 40%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            z-index: 1;
         }
-
         .header p {
-            color: #666;
-            font-size: 1.1em;
-        }
-
-        .status {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9em;
+            color: var(--text-secondary);
+            font-size: 1.05rem;
             font-weight: 500;
+            letter-spacing: 0.02em;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
         }
-
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 28px;
+            padding: 12px 28px;
+            border-radius: var(--radius-pill);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .status:hover { transform: scale(1.02); }
+        .status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
         .status.live {
-            background: #10b981;
-            color: white;
+            background: linear-gradient(135deg, var(--accent-live-soft) 0%, rgba(5, 150, 105, 0.06) 100%);
+            color: var(--accent-push-bright);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            box-shadow: 0 0 28px rgba(16, 185, 129, 0.12);
         }
-
+        .status.live .dot {
+            background: var(--accent-push-bright);
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.7);
+            animation: pulse 2s ease-in-out infinite;
+        }
         .status.error {
-            background: #ef4444;
-            color: white;
+            background: rgba(220, 38, 38, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(220, 38, 38, 0.35);
+        }
+        .status.error .dot { background: #f87171; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.15); }
         }
 
+        /* ----- Events section: premium panel with double white border ----- */
         .events-container {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            min-height: 400px;
+            background: linear-gradient(165deg, var(--panel-bg) 0%, var(--panel-bg-soft) 100%);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 2px solid var(--border-premium);
+            border-radius: var(--radius);
+            padding: 40px 44px 44px;
+            min-height: 500px;
+            box-shadow: var(--shadow-panel), inset 0 0 0 1px rgba(255,255,255,0.12);
         }
-
         .events-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-mid);
         }
-
+        .section-label {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
         .events-header h2 {
-            color: #333;
-            font-size: 1.8em;
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: 1.5rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
         }
-
         .refresh-indicator {
-            color: #666;
-            font-size: 0.9em;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            letter-spacing: 0.03em;
         }
-
         .spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid #e5e7eb;
-            border-top-color: #667eea;
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent-push-bright);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.7s linear infinite;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
+        /* ----- Event card: elevated surface with inner double border ----- */
         .event-card {
-            background: #f9fafb;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            animation: slideIn 0.3s ease-out;
+            background: linear-gradient(145deg, var(--card-bg) 0%, #1e2a3a 100%);
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 0;
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: transform 0.32s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.32s ease, border-color 0.28s ease, background 0.28s ease;
+            animation: slideIn 0.52s cubic-bezier(0.2, 0, 0, 1) both;
+            box-shadow: var(--shadow-card), inset 0 0 0 1px rgba(255,255,255,0.08);
         }
-
+        .event-card:nth-child(1) { animation-delay: 0.04s; }
+        .event-card:nth-child(2) { animation-delay: 0.08s; }
+        .event-card:nth-child(3) { animation-delay: 0.12s; }
+        .event-card:nth-child(4) { animation-delay: 0.16s; }
+        .event-card:nth-child(5) { animation-delay: 0.2s; }
+        .event-card:nth-child(n+6) { animation-delay: 0.24s; }
         .event-card:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(145deg, var(--card-bg-hover) 0%, var(--card-bg-elevated) 100%);
+            border-color: var(--border-glow);
+            transform: translateX(6px) scale(1.004);
+            box-shadow: var(--shadow-card-hover);
         }
-
+        .event-card.push:hover { box-shadow: 0 24px 56px rgba(0,0,0,0.32), 0 0 0 1px rgba(255,255,255,0.08), 0 0 40px var(--glow-push); }
+        .event-card.pull_request:hover { box-shadow: 0 24px 56px rgba(0,0,0,0.32), 0 0 0 1px rgba(255,255,255,0.08), 0 0 40px var(--glow-pr); }
+        .event-card.merge:hover { box-shadow: 0 24px 56px rgba(0,0,0,0.32), 0 0 0 1px rgba(255,255,255,0.08), 0 0 40px var(--glow-merge); }
         @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .event-card.push {
-            border-left-color: #10b981;
+        .event-card.push { border-left: 4px solid var(--accent-push); }
+        .event-card.pull_request { border-left: 4px solid var(--accent-pr); }
+        .event-card.merge { border-left: 4px solid var(--accent-merge); }
+
+        .event-type-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 26px;
+            border-bottom: 1px solid var(--border);
+        }
+        .event-type-row.push {
+            background: linear-gradient(90deg, var(--accent-push-soft) 0%, transparent 60%);
+            border-bottom-color: rgba(16, 185, 129, 0.15);
+        }
+        .event-type-row.pull_request {
+            background: linear-gradient(90deg, var(--accent-pr-soft) 0%, transparent 60%);
+            border-bottom-color: rgba(245, 158, 11, 0.15);
+        }
+        .event-type-row.merge {
+            background: linear-gradient(90deg, var(--accent-merge-soft) 0%, transparent 60%);
+            border-bottom-color: rgba(139, 92, 246, 0.15);
         }
 
-        .event-card.pull_request {
-            border-left-color: #f59e0b;
-        }
-
-        .event-card.merge {
-            border-left-color: #8b5cf6;
-        }
-
-        .event-message {
-            color: #333;
-            font-size: 1.1em;
-            margin-bottom: 8px;
-            line-height: 1.5;
-        }
-
-        .event-timestamp {
-            color: #6b7280;
-            font-size: 0.9em;
-        }
-
-        .event-badge {
-            display: inline-block;
-            padding: 4px 12px;
+        .event-type-icon {
+            width: 42px;
+            height: 42px;
             border-radius: 12px;
-            font-size: 0.75em;
-            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.28s ease;
+        }
+        .event-card:hover .event-type-icon { transform: scale(1.06); }
+        .event-type-icon.push {
+            background: linear-gradient(145deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.1) 100%);
+            color: var(--accent-push-bright);
+            box-shadow: 0 0 24px var(--glow-push);
+        }
+        .event-type-icon.pull_request {
+            background: linear-gradient(145deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.1) 100%);
+            color: var(--accent-pr-bright);
+            box-shadow: 0 0 24px var(--glow-pr);
+        }
+        .event-type-icon.merge {
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.25) 0%, rgba(139, 92, 246, 0.1) 100%);
+            color: var(--accent-merge-bright);
+            box-shadow: 0 0 24px var(--glow-merge);
+        }
+        .event-type-icon svg { width: 20px; height: 20px; }
+
+        .event-type-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.11em;
             text-transform: uppercase;
-            margin-right: 10px;
+        }
+        .event-type-label.push { color: var(--accent-push-bright); }
+        .event-type-label.pull_request { color: var(--accent-pr-bright); }
+        .event-type-label.merge { color: var(--accent-merge-bright); }
+
+        .event-type-badge {
+            margin-left: auto;
+            padding: 8px 18px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            transition: transform 0.22s ease, box-shadow 0.22s ease;
+        }
+        .event-card:hover .event-type-badge { transform: scale(1.02); }
+        .event-type-badge.push {
+            background: linear-gradient(145deg, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.1) 100%);
+            color: var(--accent-push-bright);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 20px var(--glow-push);
+        }
+        .event-type-badge.pull_request {
+            background: linear-gradient(145deg, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.1) 100%);
+            color: var(--accent-pr-bright);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 20px var(--glow-pr);
+        }
+        .event-type-badge.merge {
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.1) 100%);
+            color: var(--accent-merge-bright);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 20px var(--glow-merge);
         }
 
-        .badge-push {
-            background: #d1fae5;
-            color: #065f46;
+        .event-body {
+            padding: 24px 26px 22px;
         }
-
-        .badge-pull_request {
-            background: #fef3c7;
-            color: #92400e;
+        .event-message {
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            line-height: 1.64;
+            margin-bottom: 10px;
+            letter-spacing: 0.015em;
         }
-
-        .badge-merge {
-            background: #e9d5ff;
-            color: #6b21a8;
+        .event-timestamp {
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            letter-spacing: 0.03em;
         }
 
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #6b7280;
+            padding: 88px 40px;
+            color: var(--text-secondary);
         }
-
-        .empty-state svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-            opacity: 0.5;
+        .empty-state .icon-wrap {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 36px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, var(--card-bg) 0%, var(--card-bg-hover) 100%);
+            border: 1px solid var(--border-mid);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-card), inset 0 2px 12px rgba(0,0,0,0.2);
         }
-
+        .empty-state svg { width: 42px; height: 42px; opacity: 0.5; color: var(--text-muted); }
         .empty-state h3 {
-            font-size: 1.5em;
-            margin-bottom: 10px;
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-bottom: 14px;
+            letter-spacing: -0.02em;
         }
+        .empty-state p { font-size: 0.9375rem; color: var(--text-muted); line-height: 1.55; letter-spacing: 0.02em; }
 
         .loading {
             text-align: center;
-            padding: 40px;
-            color: #6b7280;
+            padding: 72px;
+            color: var(--text-muted);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            letter-spacing: 0.03em;
         }
 
         @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2em;
-            }
-
-            .events-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-
-            .event-card {
-                padding: 15px;
-            }
+            body { padding: 28px 18px 44px; }
+            .header { padding: 44px 32px 40px; }
+            .header h1 { font-size: 2rem; }
+            .events-container { padding: 28px 24px 32px; }
+            .events-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .event-type-row { padding: 16px 22px; }
+            .event-body { padding: 20px 22px 18px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 GitHub Webhook Dashboard</h1>
-            <p>Real-time monitoring of GitHub events</p>
-            <div id="status" class="status live">● Live</div>
+            <h1>GitHub Webhook Dashboard</h1>
+            <p>Real-time monitoring of Push, Pull Request & Merge events</p>
+            <div id="status" class="status live"><span class="dot"></span> Live</div>
         </div>
 
         <div class="events-container">
             <div class="events-header">
-                <h2>Recent Events</h2>
+                <div>
+                    <div class="section-label">Activity</div>
+                    <h2>Recent Events</h2>
+                </div>
                 <div class="refresh-indicator">
                     <div class="spinner" id="spinner"></div>
-                    <span>Auto-refreshing every 15 seconds</span>
+                    <span>Auto-refresh every 15s</span>
                 </div>
             </div>
             <div id="events-list">
-                <div class="loading">Loading events...</div>
+                <div class="loading">Loading events…</div>
             </div>
         </div>
     </div>
 
     <script>
         const API_URL = '/api/events';
-        const POLL_INTERVAL = 15000; // 15 seconds
-
+        const POLL_INTERVAL = 15000;
         let eventsCache = new Set();
         let isLoading = false;
 
-        function getBadgeClass(action) {
-            const a = (action || '').toString().toLowerCase();
-            if (a === 'push') return 'badge-push';
-            if (a === 'pull_request') return 'badge-pull_request';
-            if (a === 'merge') return 'badge-merge';
-            return '';
-        }
+        var ICON_PUSH = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>';
+        var ICON_PR = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>';
+        var ICON_MERGE = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>';
 
-        function getCardClass(action) {
-            const a = (action || '').toString().toLowerCase();
+        /** Normalize backend action (PUSH, PULL_REQUEST, MERGE) to key for styling/badge. */
+        function getActionKey(action) {
+            var a = (action || '').toString().toLowerCase().replace(/\s+/g, '_');
             if (a === 'push') return 'push';
-            if (a === 'pull_request') return 'pull_request';
+            if (a === 'pull_request' || a === 'pullrequest') return 'pull_request';
             if (a === 'merge') return 'merge';
-            return '';
+            return 'push';
         }
 
-        function formatAction(action) {
-            const a = (action || '').toString();
-            if (!a) return 'Event';
-            if (a === 'PULL_REQUEST') return 'Pull Request';
-            return a.charAt(0).toUpperCase() + a.slice(1).toLowerCase();
+        /** Assignment: show exact event name on the right — Push, Pull Request, or Merge. */
+        function getBadgeLabel(actionOrKey) {
+            var key = typeof actionOrKey === 'string' && (actionOrKey === 'push' || actionOrKey === 'pull_request' || actionOrKey === 'merge')
+                ? actionOrKey
+                : getActionKey(actionOrKey);
+            if (key === 'push') return 'Push';
+            if (key === 'pull_request') return 'Pull Request';
+            if (key === 'merge') return 'Merge';
+            return 'Push';
+        }
+
+        function getEventIcon(action) {
+            var key = getActionKey(action);
+            if (key === 'push') return ICON_PUSH;
+            if (key === 'pull_request') return ICON_PR;
+            return ICON_MERGE;
         }
 
         function createEventCard(event) {
             if (!event) return null;
-            const requestId = (event.request_id != null) ? String(event.request_id) : '';
-            const timestamp = (event.timestamp != null) ? String(event.timestamp) : '';
-            const eventId = requestId + '-' + timestamp;
+            var requestId = (event.request_id != null) ? String(event.request_id) : '';
+            var timestamp = (event.timestamp != null) ? String(event.timestamp) : '';
+            var eventId = requestId + '-' + timestamp;
             if (eventsCache.has(eventId)) return null;
             eventsCache.add(eventId);
 
-            const badgeClass = getBadgeClass(event.action);
-            const cardClass = getCardClass(event.action);
-            const actionLabel = formatAction(event.action);
-            const message = (event.message != null) ? String(event.message) : actionLabel;
+            var key = getActionKey(event.action);
+            var badgeLabel = getBadgeLabel(key);
+            var icon = getEventIcon(event.action);
+            var message = (event.message != null) ? String(event.message) : badgeLabel;
 
-            return `
-                <div class="event-card ${cardClass}">
-                    <div class="event-message">
-                        <span class="event-badge ${badgeClass}">${actionLabel}</span>
-                        ${message}
-                    </div>
-                    <div class="event-timestamp">${timestamp}</div>
-                </div>
-            `;
+            return '<div class="event-card ' + key + '">' +
+                '<div class="event-type-row ' + key + '">' +
+                    '<div class="event-type-icon ' + key + '">' + icon + '</div>' +
+                    '<span class="event-type-label ' + key + '">GitHub event</span>' +
+                    '<span class="event-type-badge ' + key + '">' + badgeLabel + '</span>' +
+                '</div>' +
+                '<div class="event-body">' +
+                    '<div class="event-message">' + message + '</div>' +
+                    '<div class="event-timestamp">' + timestamp + '</div>' +
+                '</div>' +
+            '</div>';
         }
 
-        async function fetchEvents() {
+        function fetchEvents() {
             if (isLoading) return;
             isLoading = true;
+            var spinner = document.getElementById('spinner');
+            var status = document.getElementById('status');
+            var eventsList = document.getElementById('events-list');
+            spinner.style.display = 'block';
 
-            const spinner = document.getElementById('spinner');
-            const status = document.getElementById('status');
-            const eventsList = document.getElementById('events-list');
+            fetch(API_URL)
+                .then(function(response) {
+                    return response.text().then(function(text) {
+                        var data;
+                        try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+                        return { ok: response.ok, status: response.status, data: data };
+                    });
+                })
+                .then(function(result) {
+                    var data = result.data;
+                    var events = Array.isArray(data) ? data : (data && data.events) ? data.events : [];
+                    var hadError = !result.ok || result.status === 503;
+                    var hasExistingCards = eventsList.querySelector('.event-card');
 
-            try {
-                spinner.style.display = 'block';
-                const response = await fetch(API_URL);
-                
-                const data = await response.json();
-                const events = Array.isArray(data) ? data : (data.events || []);
+                    if (hadError) {
+                        /* Backend/DB error: keep current list if we have one (production-safe) */
+                        status.className = 'status error';
+                        status.innerHTML = '<span class="dot"></span> Connection Error';
+                        if (!hasExistingCards) {
+                            var errMsg = (data && typeof data.error === 'string') ? data.error : 'Could not connect';
+                            var safe = (errMsg + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                            eventsList.innerHTML = '<div class="empty-state"><h3>Error loading events</h3><p>' + safe + '</p></div>';
+                        }
+                        return;
+                    }
 
-                if (!response.ok) {
-                    throw new Error(data.message || data.error || `HTTP ${response.status}`);
-                }
+                    /* Clear cache each fetch so the same events are shown again on refresh */
+                    eventsCache.clear();
 
-                const cardsHtml = events
-                    .map(function(event) { return createEventCard(event); })
-                    .filter(function(card) { return card != null; })
-                    .join('');
+                    var cardsHtml = events.map(function(event) { return createEventCard(event); })
+                        .filter(function(card) { return card != null; })
+                        .join('');
 
-                if (cardsHtml === '') {
-                    eventsList.innerHTML = `
-                        <div class="empty-state">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <h3>No events yet</h3>
-                            <p>GitHub webhook events will appear here once they are received.</p>
-                        </div>
-                    `;
-                } else {
-                    eventsList.innerHTML = cardsHtml;
-                }
+                    /* If API returned empty but we already show events, keep current list (avoid transient empty wiping the UI) */
+                    if (cardsHtml === '' && hasExistingCards) {
+                        status.className = 'status live';
+                        status.innerHTML = '<span class="dot"></span> Live';
+                        return;
+                    }
 
-                status.className = 'status live';
-                status.textContent = '● Live';
-            } catch (error) {
-                console.error('Error fetching events:', error);
-                status.className = 'status error';
-                status.textContent = '● Connection Error';
-                
-                if (eventsList.innerHTML.includes('Loading')) {
-                    eventsList.innerHTML = `
-                        <div class="empty-state">
-                            <h3>Error loading events</h3>
-                            <p>${error.message}</p>
-                        </div>
-                    `;
-                }
-            } finally {
-                spinner.style.display = 'none';
-                isLoading = false;
-            }
+                    if (cardsHtml === '') {
+                        eventsList.innerHTML = '<div class="empty-state">' +
+                            '<div class="icon-wrap"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>' +
+                            '<h3>No events yet</h3>' +
+                            '<p>Perform a Push, Pull Request, or Merge in your action repo to see events here.</p></div>';
+                    } else {
+                        eventsList.innerHTML = cardsHtml;
+                    }
+                    status.className = 'status live';
+                    status.innerHTML = '<span class="dot"></span> Live';
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    status.className = 'status error';
+                    status.innerHTML = '<span class="dot"></span> Connection Error';
+                    /* Keep existing events on network error; only show error state if we have no cards */
+                    if (eventsList.innerHTML.indexOf('Loading') !== -1 || !eventsList.querySelector('.event-card')) {
+                        var msg = (err && err.message ? err.message : 'Could not connect') + '';
+                        var safeMsg = msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                        eventsList.innerHTML = '<div class="empty-state"><h3>Error loading events</h3><p>' + safeMsg + '</p></div>';
+                    }
+                })
+                .finally(function() {
+                    spinner.style.display = 'none';
+                    isLoading = false;
+                });
         }
 
-        // Initial fetch
         fetchEvents();
-
-        // Set up polling
         setInterval(fetchEvents, POLL_INTERVAL);
-
-        // Also fetch on page visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                fetchEvents();
-            }
-        });
+        document.addEventListener('visibilitychange', function() { if (!document.hidden) fetchEvents(); });
     </script>
 </body>
 </html>

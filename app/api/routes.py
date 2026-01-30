@@ -20,14 +20,19 @@ def health_check():
             "error": str(e)
         }), 503
 
+# Max events to return (production-safe, avoids huge responses)
+EVENTS_LIMIT = 100
+
+
 @api.route('/events', methods=['GET'])
 def get_events():
-    """Get all webhook events from MongoDB. Always returns 200 with an array."""
+    """Get all webhook events from MongoDB. Returns 200 with array, or 503 on DB failure."""
     try:
-        events = list(mongo.db.events.find().sort('timestamp', -1))
+        # Sort by _id descending (newest first; _id is time-based)
+        events = list(mongo.db.events.find().sort('_id', -1).limit(EVENTS_LIMIT))
     except Exception:
-        # Return 200 with empty array so dashboard shows "No events" instead of error
-        return jsonify([]), 200
+        # Return 503 so frontend keeps previous events and shows connection error (production-safe)
+        return jsonify({"error": "Database unavailable", "events": []}), 503
 
     formatted = []
     for e in events:
