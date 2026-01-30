@@ -122,11 +122,9 @@ def get_events():
 
     formatted = []
     for e in events:
-        # Normalize author, and map "Unknown" to your GitHub name for display
-        author_raw = e.get("author") or ""
-        author = (author_raw or "").strip() or "Unknown"
-        if author == "Unknown":
-            author = "Lakshmiswayampakula"
+        # Display author: always show your GitHub name
+        # (DB still keeps the original author, but the UI is fixed to you.)
+        author = "Lakshmiswayampakula"
 
         action = e.get("action") or ""
         from_branch = e.get("from_branch") or ""

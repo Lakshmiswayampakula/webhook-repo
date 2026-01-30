@@ -446,28 +446,38 @@
         var ICON_PR = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>';
         var ICON_MERGE = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>';
 
-        /** Normalize backend action (PUSH, PULL_REQUEST, MERGE) to key for styling/badge. */
-        function getActionKey(action) {
+        /** Normalize backend action (PUSH, PULL_REQUEST, MERGE) to key for styling/badge.
+         *  If action field is missing/legacy, infer from the human-readable message so
+         *  the label always matches what the text says (Push / Pull Request / Merge).
+         */
+        function getActionKey(action, message) {
             var a = (action || '').toString().toLowerCase().replace(/\s+/g, '_');
             if (a === 'push') return 'push';
             if (a === 'pull_request' || a === 'pullrequest') return 'pull_request';
             if (a === 'merge') return 'merge';
+
+            // Fallback: infer from message string
+            var m = (message || '').toString().toLowerCase();
+            if (m.indexOf('submitted a pull request') !== -1) return 'pull_request';
+            if (m.indexOf('merged branch') !== -1) return 'merge';
+            if (m.indexOf('pushed to') !== -1) return 'push';
+
             return 'push';
         }
 
         /** Assignment: show exact event name on the right — Push, Pull Request, or Merge. */
-        function getBadgeLabel(actionOrKey) {
-            var key = typeof actionOrKey === 'string' && (actionOrKey === 'push' || actionOrKey === 'pull_request' || actionOrKey === 'merge')
-                ? actionOrKey
-                : getActionKey(actionOrKey);
+        function getBadgeLabel(actionKey) {
+            var key = (actionKey === 'push' || actionKey === 'pull_request' || actionKey === 'merge')
+                ? actionKey
+                : 'push';
             if (key === 'push') return 'Push';
             if (key === 'pull_request') return 'Pull Request';
             if (key === 'merge') return 'Merge';
             return 'Push';
         }
 
-        function getEventIcon(action) {
-            var key = getActionKey(action);
+        function getEventIcon(actionKey) {
+            var key = actionKey || 'push';
             if (key === 'push') return ICON_PUSH;
             if (key === 'pull_request') return ICON_PR;
             return ICON_MERGE;
@@ -481,10 +491,10 @@
             if (eventsCache.has(eventId)) return null;
             eventsCache.add(eventId);
 
-            var key = getActionKey(event.action);
+            var message = (event.message != null) ? String(event.message) : '';
+            var key = getActionKey(event.action, message);
             var badgeLabel = getBadgeLabel(key);
-            var icon = getEventIcon(event.action);
-            var message = (event.message != null) ? String(event.message) : badgeLabel;
+            var icon = getEventIcon(key);
 
             return '<div class="event-card ' + key + '">' +
                 '<div class="event-type-row ' + key + '">' +
