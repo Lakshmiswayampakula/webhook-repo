@@ -1,7 +1,7 @@
 import json
 import logging
 from flask import Blueprint, request, jsonify
-from datetime import datetime
+from datetime import datetime, timedelta
 from ..extensions import mongo
 
 logger = logging.getLogger(__name__)
@@ -19,41 +19,51 @@ def _safe_json():
 
 
 def format_timestamp(dt):
-    """Format datetime to '1st April 2021 - 9:30 PM UTC' format"""
-    day = dt.day
-    # Handle special cases: 11th, 12th, 13th
-    if 11 <= day <= 13:
-        suffix = "th"
-    elif day % 10 == 1:
-        suffix = "st"
-    elif day % 10 == 2:
-        suffix = "nd"
-    elif day % 10 == 3:
-        suffix = "rd"
-    else:
-        suffix = "th"
+    """Format datetime to '1st April 2021 - 9:30 PM UTC (3:00 AM IST)' format"""
+    def format_single_time(dt_obj):
+        day = dt_obj.day
+        # Handle special cases: 11th, 12th, 13th
+        if 11 <= day <= 13:
+            suffix = "th"
+        elif day % 10 == 1:
+            suffix = "st"
+        elif day % 10 == 2:
+            suffix = "nd"
+        elif day % 10 == 3:
+            suffix = "rd"
+        else:
+            suffix = "th"
+        
+        month_names = ["January", "February", "March", "April", "May", "June",
+                       "July", "August", "September", "October", "November", "December"]
+        
+        hour = dt_obj.hour
+        minute = dt_obj.minute
+        
+        # Convert to 12-hour format
+        if hour == 0:
+            hour_12 = 12
+            am_pm = "AM"
+        elif hour < 12:
+            hour_12 = hour
+            am_pm = "AM"
+        elif hour == 12:
+            hour_12 = 12
+            am_pm = "PM"
+        else:
+            hour_12 = hour - 12
+            am_pm = "PM"
+        
+        return f"{day}{suffix} {month_names[dt_obj.month - 1]} {dt_obj.year} - {hour_12}:{minute:02d} {am_pm}"
     
-    month_names = ["January", "February", "March", "April", "May", "June",
-                   "July", "August", "September", "October", "November", "December"]
+    # Format UTC time
+    utc_str = format_single_time(dt) + " UTC"
     
-    hour = dt.hour
-    minute = dt.minute
+    # Convert to IST (UTC+5:30)
+    ist_dt = dt + timedelta(hours=5, minutes=30)
+    ist_str = format_single_time(ist_dt) + " IST"
     
-    # Convert to 12-hour format
-    if hour == 0:
-        hour_12 = 12
-        am_pm = "AM"
-    elif hour < 12:
-        hour_12 = hour
-        am_pm = "AM"
-    elif hour == 12:
-        hour_12 = 12
-        am_pm = "PM"
-    else:
-        hour_12 = hour - 12
-        am_pm = "PM"
-    
-    return f"{day}{suffix} {month_names[dt.month - 1]} {dt.year} - {hour_12}:{minute:02d} {am_pm} UTC"
+    return f"{utc_str} ({ist_str})"
 
 @webhook.route('/receiver', methods=["POST", "GET"])
 def receiver():
@@ -93,18 +103,37 @@ def receiver():
                 or (data.get("head_commit") or {}).get("id")
                 or ("push-%s" % ts.replace(" ", "-").replace(":", "-")[:50])
             )
-            commits = data.get("commits") or []
-            if commits:
-                author = (commits[0] or {}).get("author") or {}
-                event["author"] = (
-                    author.get("name")
-                    or author.get("username")
-                    or ((author.get("email") or "").split("@")[0])
-                    or "Unknown"
-                )
+            # Comprehensive author extraction - check multiple sources
+            sender = data.get("sender") or {}
+            pusher = data.get("pusher") or {}
+            repository = data.get("repository") or {}
+            repo_owner = repository.get("owner") or {}
+            
+            # Priority: sender.login > pusher.login > pusher.name > repo_owner.login > commits author > repo_owner.login fallback
+            event["author"] = (
+                sender.get("login")
+                or pusher.get("login")
+                or pusher.get("name")
+                or repo_owner.get("login")
+                or "Unknown"
+            )
+            
+            # If still Unknown, try commits
             if event["author"] == "Unknown":
-                pusher = data.get("pusher") or {}
-                event["author"] = pusher.get("name") or pusher.get("login") or "Unknown"
+                commits = data.get("commits") or []
+                if commits:
+                    author = (commits[0] or {}).get("author") or {}
+                    event["author"] = (
+                        author.get("username")
+                        or author.get("name")
+                        or ((author.get("email") or "").split("@")[0])
+                        or "Unknown"
+                    )
+            
+            # Final fallback to repository owner
+            if event["author"] == "Unknown":
+                event["author"] = repo_owner.get("login") or "Unknown"
+            
             ref = (data.get("ref") or "").strip()
             event["to_branch"] = ref.split("/")[-1] if ref else "main"
 
@@ -121,9 +150,20 @@ def receiver():
 
             event["action"] = action
             event["request_id"] = str(data.get("number") or "")
+            
+            # Comprehensive author extraction for PR/Merge events
             sender = data.get("sender") or {}
             pr_user = pr.get("user") or {}
-            event["author"] = sender.get("login") or pr_user.get("login") or "Unknown"
+            repository = data.get("repository") or {}
+            repo_owner = repository.get("owner") or {}
+            
+            event["author"] = (
+                sender.get("login")
+                or pr_user.get("login")
+                or repo_owner.get("login")
+                or "Unknown"
+            )
+            
             event["from_branch"] = (pr.get("head") or {}).get("ref") or ""
             event["to_branch"] = (pr.get("base") or {}).get("ref") or ""
 

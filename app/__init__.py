@@ -23,11 +23,15 @@ def create_app():
     app = Flask(__name__, template_folder=templates_dir)
 
     # MongoDB configuration
-    # Prefer environment variable (for Render/production), fall back to local default
-    app.config["MONGO_URI"] = os.environ.get(
-        "MONGO_URI",
-        "mongodb+srv://lakshmidevi2116_db_user:z3E3v1Eo6wmkkcNk@cluster0.5msctw9.mongodb.net/github_webhooks?retryWrites=true&w=majority&appName=Cluster0",
-    )
+    # MUST be set via MONGO_URI environment variable in production
+    # For local development, create a .env file (see .env.example)
+    mongo_uri = os.environ.get("MONGO_URI")
+    if not mongo_uri:
+        raise ValueError(
+            "MONGO_URI environment variable is required. "
+            "Set it in your environment or create a .env file for local development."
+        )
+    app.config["MONGO_URI"] = mongo_uri
 
     # Allow cross-origin requests (if CORS is available)
     if CORS_AVAILABLE:

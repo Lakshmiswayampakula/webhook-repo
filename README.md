@@ -24,12 +24,11 @@ pip install -r requirements.txt
 
 ### 2. MongoDB
 
-Use a MongoDB Atlas cluster (or local MongoDB). Set the connection string:
+Use a MongoDB Atlas cluster (or local MongoDB). **The connection string must be provided via environment variable**:
 
-- **Option A (recommended):** Set the `MONGO_URI` environment variable.
-- **Option B:** For local only, you can set the default in `app/__init__.py` (see `app.config["MONGO_URI"]`).
+- Set the `MONGO_URI` environment variable (both locally and in production).
 
-Database name used: `github_webhooks`. Collection: `events`.
+Database name used (suggested): `github_webhooks`. Collection: `events`.
 
 ### 3. Run the app
 
