@@ -67,7 +67,7 @@ To receive events from a GitHub repo:
 
 1. Connect this repo to Render and create a Web Service.
 2. **Build:** `pip install -r requirements.txt`
-3. **Start:** `gunicorn app:app` (use the root `app.py` as the app module).
+3. **Start:** `gunicorn run:app` (uses `run.py`; `gunicorn app:app` also works).
 4. Set **Environment variable:** `MONGO_URI` = your MongoDB Atlas connection string (include database name in the URL, e.g. `github_webhooks`).
 5. In MongoDB Atlas → Network Access, allow `0.0.0.0/0` (or Render’s IPs) so the app can connect.
 

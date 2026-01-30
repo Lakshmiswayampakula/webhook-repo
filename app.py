@@ -1,8 +1,8 @@
 """
-Gunicorn entrypoint for Render.
+Gunicorn entrypoint (alternative to run:app).
 
-Render start command shown in logs: `gunicorn app:app`
-So this file must expose a module-level variable named `app`.
+Use either:  gunicorn run:app   or   gunicorn app:app
+Both expose the same Flask app via create_app().
 """
 
 from app import create_app
