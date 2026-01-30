@@ -112,17 +112,18 @@ def receiver():
             repository = data.get("repository") or {}
             repo_owner = repository.get("owner") or {}
             
-            # Priority: sender.login > pusher.login > pusher.name > repo_owner.login > commits author > repo_owner.login fallback
+            # Priority: sender.login > pusher.login > pusher.name > repo_owner.login > commits author
+            # Final fallback: always use your GitHub name instead of "Unknown"
             event["author"] = (
                 sender.get("login")
                 or pusher.get("login")
                 or pusher.get("name")
                 or repo_owner.get("login")
-                or "Unknown"
+                or "Lakshmiswayampakula"  # Your GitHub username as fallback
             )
             
-            # If still Unknown, try commits
-            if event["author"] == "Unknown":
+            # If still not found, try commits
+            if not event["author"] or event["author"] == "Unknown":
                 commits = data.get("commits") or []
                 if commits:
                     author = (commits[0] or {}).get("author") or {}
@@ -130,12 +131,12 @@ def receiver():
                         author.get("username")
                         or author.get("name")
                         or ((author.get("email") or "").split("@")[0])
-                        or "Unknown"
+                        or "Lakshmiswayampakula"
                     )
             
-            # Final fallback to repository owner
-            if event["author"] == "Unknown":
-                event["author"] = repo_owner.get("login") or "Unknown"
+            # Final fallback: always use your GitHub name
+            if not event["author"] or event["author"] == "Unknown":
+                event["author"] = repo_owner.get("login") or "Lakshmiswayampakula"
             
             ref = (data.get("ref") or "").strip()
             event["to_branch"] = ref.split("/")[-1] if ref else "main"
@@ -144,11 +145,18 @@ def receiver():
             pr = data.get("pull_request") or {}
             pr_action = (data.get("action") or "").lower()
             is_merged = pr.get("merged", False)
+            
+            # Log PR event details for debugging
+            logger.info(f"PR event - action: {pr_action}, merged: {is_merged}")
+            
             if pr_action == "closed" and is_merged:
                 action = "MERGE"
+                logger.info("Detected MERGE event from closed PR")
             elif pr_action in ("opened", "synchronize", "reopened"):
                 action = "PULL_REQUEST"
+                logger.info("Detected PULL_REQUEST event")
             else:
+                logger.info(f"Ignoring PR action: {pr_action}")
                 return jsonify({"message": "ok", "action": pr_action}), 200
 
             event["action"] = action
@@ -160,11 +168,12 @@ def receiver():
             repository = data.get("repository") or {}
             repo_owner = repository.get("owner") or {}
             
+            # Always use your GitHub name as fallback instead of "Unknown"
             event["author"] = (
                 sender.get("login")
                 or pr_user.get("login")
                 or repo_owner.get("login")
-                or "Unknown"
+                or "Lakshmiswayampakula"  # Your GitHub username as fallback
             )
             
             event["from_branch"] = (pr.get("head") or {}).get("ref") or ""
