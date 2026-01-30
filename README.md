@@ -72,6 +72,8 @@ To receive events from a GitHub repo:
 
 After deploy, use the Render URL in the webhook Payload URL (e.g. `https://<your-service>.onrender.com/webhook/receiver`).
 
+**Important:** After changing code, push to your repo and let Render **redeploy** so the live app uses the latest code. Merge and Pull Request events are only stored when the webhook receives `pull_request` events from GitHub (create/merge PRs on GitHub, not local `git merge`/`git pull`).
+
 ## API endpoints
 
 | Method | Path               | Description                |

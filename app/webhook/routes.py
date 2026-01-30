@@ -83,7 +83,8 @@ def receiver():
         if not event_type:
             return jsonify({"message": "ok"}), 200
 
-        github_event = event_type.lower()
+        # Normalize event type: "pull_request", "Pull Request" -> "pull_request"
+        github_event = event_type.lower().replace(" ", "_").replace("-", "_").strip()
         ts = format_timestamp(datetime.utcnow())
         event = {
             "request_id": "",
@@ -95,8 +96,8 @@ def receiver():
         }
         action = None
         
-        # Log received event type for debugging
-        logger.info(f"Received GitHub event: {github_event}")
+        # Log received event type for debugging (raw header + normalized)
+        logger.info(f"Received GitHub event: raw={event_type!r}, normalized={github_event!r}")
 
         if github_event == "push":
             action = "PUSH"
@@ -143,23 +144,25 @@ def receiver():
 
         elif github_event == "pull_request":
             pr = data.get("pull_request") or {}
-            pr_action = (data.get("action") or "").lower()
-            is_merged = pr.get("merged", False)
+            pr_action = (data.get("action") or "").lower().strip()
+            # merged can be bool or None; ensure we treat as bool
+            is_merged = bool(pr.get("merged", False))
             
             # Log PR event details for debugging
-            logger.info(f"PR event - action: {pr_action}, merged: {is_merged}")
+            logger.info(f"PR event - action: {pr_action}, merged: {is_merged}, pr keys: {list(pr.keys())[:15]}")
             
             if pr_action == "closed" and is_merged:
                 action = "MERGE"
+                event["action"] = "MERGE"
                 logger.info("Detected MERGE event from closed PR")
             elif pr_action in ("opened", "synchronize", "reopened"):
                 action = "PULL_REQUEST"
+                event["action"] = "PULL_REQUEST"
                 logger.info("Detected PULL_REQUEST event")
             else:
                 logger.info(f"Ignoring PR action: {pr_action}")
                 return jsonify({"message": "ok", "action": pr_action}), 200
 
-            event["action"] = action
             event["request_id"] = str(data.get("number") or "")
             
             # Comprehensive author extraction for PR/Merge events
